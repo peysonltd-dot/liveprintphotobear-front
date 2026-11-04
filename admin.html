@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    
+    <script src="config.js?v=03-20261104"></script>
+    <script src="admin-auth.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 AI camera控制台</title>
+    <title>03 號 AI 拍貼系統後台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;500;700;900&display=swap" rel="stylesheet">
@@ -66,13 +69,11 @@
     <header class="max-w-7xl mx-auto mb-8 flex flex-col sm:flex-row justify-between items-center border-b border-cyan-500/20 pb-4 gap-4">
         <div class="flex items-center gap-3">
             <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
-            <h1 class="text-2xl font-black tracking-wider text-white">智慧創新大賞 <span class="text-cyan-400 font-mono text-lg">LITE CONTROL CORE</span></h1>
+            <h1 class="text-2xl font-black tracking-wider text-white">03 號 AI 拍貼系統 <span class="text-cyan-400 font-mono text-lg">LITE CONTROL CORE</span></h1>
         </div>
         
         <div class="flex flex-wrap items-center gap-3">
-            <button id="printer-check-btn" onclick="checkPrinterStatus()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                <i class="fa-solid fa-print"></i> <span id="printer-status-text">檢測出票機狀態</span>
-            </button>
+            <button onclick="PeysonAdmin.logout()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm">登出</button>
             <button id="sound-toggle" onclick="toggleSound()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-slate-700 transition-all">
                 <i id="sound-icon" class="fa-solid fa-volume-xmark text-rose-500"></i> <span id="sound-text">啟用音效提示</span>
             </button>
@@ -114,7 +115,7 @@
     </main>
 
     <script>
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
+        const API_BASE_URL = window.PEYSON_API_BASE;
         let localTasksCache = {};
         let currentUploadTaskId = null;
         let globalAudioCtx = null;
@@ -129,7 +130,7 @@
         async function loadFrontMode() {
             const status = document.getElementById('front-mode-status');
             try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/front-mode`, { cache: 'no-store' });
+                const res = await PeysonAdmin.request(`${API_BASE_URL}/api/admin/front-mode`, { cache: 'no-store' });
                 const data = await res.json();
                 if (!res.ok || !data.success) throw new Error(data.error || '讀取失敗');
                 document.getElementById('front-mode-select').value = data.frontMode;
@@ -147,7 +148,7 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i>儲存中…`;
             try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/front-mode`, {
+                const res = await PeysonAdmin.request(`${API_BASE_URL}/api/admin/front-mode`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode })
@@ -169,7 +170,7 @@
             button.disabled = true;
             button.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 排隊中`;
             try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/retry/${taskId}`, { method: 'POST' });
+                const res = await PeysonAdmin.request(`${API_BASE_URL}/api/admin/retry/${taskId}`, { method: 'POST' });
                 const data = await res.json();
                 if (!res.ok || !data.success) throw new Error(data.error || '重試失敗');
                 await fetchAllTasks();
@@ -243,47 +244,6 @@
             }
         }
 
-        async function checkPrinterStatus() {
-            const btn = document.getElementById('printer-check-btn');
-            const text = document.getElementById('printer-status-text');
-            const icon = btn.querySelector('i');
-            
-            text.innerText = "正在聯絡飛鵝雲端...";
-            btn.disabled = true;
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/printer-status`);
-                const data = await res.json();
-                if (data.success && data.data) {
-                    const statusText = data.data.data.toLowerCase(); 
-                    text.innerText = `狀態：${data.data.data}`;
-                    
-                    if (statusText.includes("在线") || statusText.includes("normal") || statusText.includes("online") || statusText.includes("ok")) {
-                        btn.className = "bg-emerald-950/40 text-emerald-400 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.25)]";
-                        icon.className = "fa-solid fa-circle-check";
-                    } else {
-                        btn.className = "bg-rose-950/40 text-rose-400 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.25)]";
-                        icon.className = "fa-solid fa-triangle-exclamation";
-                    }
-                } else {
-                    text.innerText = `連線錯誤 (請檢查 API 金鑰)`;
-                    btn.className = "bg-rose-950/40 text-rose-400 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-rose-400/50";
-                    icon.className = "fa-solid fa-circle-xmark";
-                }
-            } catch (err) {
-                text.innerText = "無法聯絡 Render 後端";
-                btn.className = "bg-rose-950/40 text-rose-400 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-rose-400/50";
-                icon.className = "fa-solid fa-circle-xmark";
-            }
-            
-            setTimeout(() => {
-                btn.disabled = false;
-                text.innerText = "檢測出票機狀態";
-                btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]";
-                icon.className = "fa-solid fa-print";
-            }, 4000);
-        }
-
         function compressAndResizeImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -348,7 +308,7 @@
             btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 正在重製...`;
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/reset-all`, { method: 'POST' });
+                const res = await PeysonAdmin.request(`${API_BASE_URL}/api/admin/reset-all`, { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     closeResetModal(); localTasksCache = {}; renderTasks([]); showResetSuccessBanner();
@@ -391,7 +351,7 @@
                 try {
                     const bodyData = {};
                     bodyData[field] = value;
-                    await fetch(`${API_BASE_URL}/api/admin/update-meta/${taskId}`, {
+                    await PeysonAdmin.request(`${API_BASE_URL}/api/admin/update-meta/${taskId}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(bodyData)
@@ -539,7 +499,7 @@
             compressAndResizeImage(file, async (compressedBase64) => {
                 const bodyData = {}; bodyData[`resultImage${type}`] = compressedBase64;
                 try {
-                    const res = await fetch(`${API_BASE_URL}/api/admin/upload-result-dual/${taskId}`, {
+                    const res = await PeysonAdmin.request(`${API_BASE_URL}/api/admin/upload-result-dual/${taskId}`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyData)
                     });
                     if ((await res.json()).success) {
@@ -557,28 +517,6 @@
                 handleImageFileInject(this.files[0], taskId, type); this.value = "";
             });
         });
-
-        async function reprintTicket(taskId, btnId) {
-            const btn = document.getElementById(btnId);
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 出票中...`;
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/reprint/${taskId}`, { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> 已出單`;
-                    btn.className = "bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 font-bold px-2 py-1.5 rounded-lg text-[10px] transition-all flex items-center justify-center gap-1";
-                } else { alert("補印失敗：" + (data.error || "請確認出票機狀態！")); btn.innerHTML = originalHtml; }
-            } catch (err) {
-                console.error("補印連線錯誤:", err); alert("連線後端伺服器失敗！"); btn.innerHTML = originalHtml;
-            } finally {
-                setTimeout(() => {
-                    btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-print text-indigo-400"></i> 重新出票`;
-                    btn.className = "bg-indigo-950/40 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold px-2 py-1.5 rounded-lg text-[10px] transition-all flex items-center justify-center gap-1";
-                }, 3000);
-            }
-        }
 
         // Bound background work as orders accumulate; never delete any task data.
         const imageQueue = [];
@@ -598,7 +536,7 @@
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 20000);
             try {
-                const res = await fetch(url, { signal: controller.signal });
+                const res = await PeysonAdmin.request(url, { signal: controller.signal });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.json();
             } finally { clearTimeout(timer); }
@@ -685,7 +623,7 @@
 
             container.innerHTML = tasks.map(task => {
                 const currentStatus = task.processStatus || '製作中';
-                const currentRemark = task.remark || '';
+                const currentRemark = String(task.remark || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
                 const userChoiceHtml = task.chosenDesign 
                     ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded font-black text-xs"><i class="fa-solid fa-circle-check mr-1"></i> 已確認：[ 風格 ${task.chosenDesign} 款 ]</span>`
@@ -799,9 +737,6 @@
                         
                         <div class="mt-2 flex items-center justify-between border-t border-slate-800 pt-2.5 gap-2">
                             <div class="flex gap-2">
-                                <button id="reprint-btn-${task.id}" onclick="reprintTicket('${task.id}', 'reprint-btn-${task.id}')" class="bg-indigo-950/40 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-300 font-bold px-2 py-1.5 rounded-lg text-[10px] transition-all flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-print text-indigo-400"></i> 重新出票
-                                </button>
                                 ${task.status === 'failed' ? `
                                     <button onclick="retryAiTask('${task.id}', this)" class="bg-rose-950/40 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-bold px-2 py-1.5 rounded-lg text-[10px] transition-all flex items-center justify-center gap-1">
                                         <i class="fa-solid fa-rotate-right"></i> 重新生成
@@ -838,10 +773,13 @@
 
         const kioskBasePath = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
         document.getElementById('kiosk-link').href = `${kioskBasePath}kiosk.html`;
-        loadFrontMode();
-        fetchAllTasks();
-        setInterval(fetchAllTasks, 3200);
+        PeysonAdmin.ready().then(() => {
+            loadFrontMode();
+            fetchAllTasks();
+            setInterval(fetchAllTasks, 3200);
+        });
     </script>
 </body>
 </html>
+
 

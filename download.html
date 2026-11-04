@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="config.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Save Your AI Character | 角色圖片下載</title>
@@ -122,10 +123,11 @@
     </div>
 
     <script>
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
+        const API_BASE_URL = window.PEYSON_API_BASE;
 
         const urlParams = new URLSearchParams(window.location.search);
         const taskId = urlParams.get('taskId');
+        const taskToken = urlParams.get('token') || '';
         const langParam = urlParams.get('lang');
 
         // 自動檢測手機語系是否為日文
@@ -170,7 +172,7 @@
 
         async function fetchPortraitData() {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/status/${taskId}`);
+                const res = await fetch(`${API_BASE_URL}/api/status/${encodeURIComponent(taskId)}`, {headers:{'X-Task-Token':taskToken},cache:'no-store'});
                 const data = await res.json();
 
                 if (data.success && data.chosenDesign) {
@@ -215,3 +217,4 @@
     </script>
 </body>
 </html>
+

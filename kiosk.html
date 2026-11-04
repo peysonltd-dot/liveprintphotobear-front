@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="config.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Your AI Character | 機台入口</title>
@@ -45,8 +46,8 @@
     </main>
 
     <script>
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
-        const MODE_CACHE_KEY = "peyson-ai-front-mode";
+        const API_BASE_URL = window.PEYSON_API_BASE;
+        const MODE_CACHE_KEY = "peyson-system03-front-mode";
 
         function targetFor(mode) {
             if (mode === "qr_upload") return "qr-kiosk.html";
@@ -95,3 +96,4 @@
     </script>
 </body>
 </html>
+

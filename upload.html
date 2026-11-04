@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="config.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>上傳照片 | Your AI Character</title>
@@ -77,7 +78,7 @@
     </main>
 
     <script>
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
+        const API_BASE_URL = window.PEYSON_API_BASE;
         const sessionId = new URLSearchParams(location.search).get("session");
         const els = {
             loading:document.getElementById("loading-card"), upload:document.getElementById("upload-card"), success:document.getElementById("success-card"), error:document.getElementById("error-card"),
@@ -220,3 +221,4 @@
     </script>
 </body>
 </html>
+

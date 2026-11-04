@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="config.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Your AI Character | 掃碼上傳體驗</title>
@@ -37,7 +38,7 @@
         .hidden { display:none !important; }
     </style>
     <link rel="stylesheet" href="tourism-theme.css?v=20260907-orange11">
-    <script src="tourism-progress.js?v=20260914-ohbear18"></script>
+    <script src="tourism-progress.js?v=03-20260914-ohbear18"></script>
 </head>
 <body class="text-white min-h-[100dvh]">
     <div class="min-h-[100dvh] flex flex-col px-5 sm:px-8 py-5">
@@ -151,8 +152,8 @@
     </div>
 
     <script>
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
-        const state = { sessionId:null, taskId:null, selectedChoice:null, resultA:null, resultB:null, pollTimer:null, expireTimer:null, returnTimer:null, expiresAt:0, isSubmitting:false };
+        const API_BASE_URL = window.PEYSON_API_BASE;
+        const state = { sessionId:null, taskId:null, taskToken:null, selectedChoice:null, resultA:null, resultB:null, pollTimer:null, expireTimer:null, returnTimer:null, expiresAt:0, isSubmitting:false };
         const progressUI = TourismProgress.mount(document.getElementById('tourism-progress'));
         let generationMonitor = null;
         let generationEpoch = 0;
@@ -172,7 +173,7 @@
         function resetState() {
             generationEpoch++;
             clearTimers();
-            state.sessionId = null; state.taskId = null; state.selectedChoice = null; state.resultA = null; state.resultB = null; state.isSubmitting = false;
+            state.sessionId = null; state.taskId = null; state.taskToken = null; state.selectedChoice = null; state.resultA = null; state.resultB = null; state.isSubmitting = false;
             document.querySelectorAll(".choice").forEach(el => el.classList.remove("selected"));
             document.getElementById("generate-btn").disabled = false;
             document.getElementById("task-number-box").classList.add("hidden");
@@ -252,11 +253,11 @@
                 const data = await api(`/api/qr-session/${encodeURIComponent(state.sessionId)}/generate`, { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
                 if (epoch !== generationEpoch) return;
                 if (!data.taskId) throw new Error('未取得任務號碼，請通知工作人員確認，勿重複送出。');
-                state.taskId = data.taskId;
+                state.taskId = data.taskId; state.taskToken = data.taskToken;
                 document.getElementById("task-number").textContent = `#${state.taskId}`;
                 document.getElementById("task-number-box").classList.remove("hidden");
                 generationMonitor = TourismProgress.monitor({
-                    apiBase:API_BASE_URL, taskId:state.taskId,
+                    apiBase:API_BASE_URL, taskId:state.taskId, taskToken:state.taskToken,
                     onProgress:progressUI.update,
                     onFailure:() => showError('AI生成未完成，請通知工作人員。'),
                     onReady:result => {
@@ -279,7 +280,7 @@
             const btn = document.getElementById("submit-choice-btn");
             btn.disabled = true; btn.textContent = "正在送出…";
             try {
-                await api(`/api/choice/${encodeURIComponent(state.taskId)}`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ choice:state.selectedChoice }) });
+                await api(`/api/choice/${encodeURIComponent(state.taskId)}`, { method:"POST", headers:{"Content-Type":"application/json","X-Task-Token":state.taskToken}, body:JSON.stringify({ choice:state.selectedChoice }) });
                 document.getElementById("final-image").src = state.selectedChoice === "A" ? state.resultA : state.resultB;
                 document.getElementById("final-task-number").textContent = `#${state.taskId}`;
                 showStep("completed");
@@ -313,5 +314,6 @@
     </script>
 </body>
 </html>
+
 
 

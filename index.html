@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="config.js?v=03-20261104"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Your AI Character | AI 專屬角色體驗</title>
@@ -210,7 +211,7 @@
             .tourism-home .tourism-home-logo { margin-top:104px; }
         }
     </style>
-    <script src="tourism-progress.js?v=20260914-ohbear18"></script>
+    <script src="tourism-progress.js?v=03-20260914-ohbear18"></script>
 </head>
 <body class="cyber-bg text-white min-h-[100dvh] w-screen flex flex-col">
     <div id="root" class="h-full w-full relative z-10 flex-grow flex flex-col"></div>
@@ -220,7 +221,7 @@
     </script>
     <script type="text/babel" data-presets="tourism-react">
         const { useState, useEffect, useRef } = React;
-        const API_BASE_URL = "https://aicameraliveprint-back.onrender.com";
+        const API_BASE_URL = window.PEYSON_API_BASE;
 
         function WaitingPortrait({lang, progress}) {
             const host = useRef(null);
@@ -357,6 +358,7 @@
             const [step, setStep] = useState('home');
             const [lang, setLang] = useState('zh'); // 🌟 預設語言改為繁體中文 'zh'
             const [taskId, setTaskId] = useState(null);
+            const [taskToken, setTaskToken] = useState(null);
             const [imgA, setImgA] = useState(null);
             const [imgB, setImgB] = useState(null);
             const [selectedChoice, setSelectedChoice] = useState(null);
@@ -429,7 +431,7 @@
                 if (stream) stream.getTracks().forEach(t => t.stop());
                 setStream(null);
                 setStep('loading');
-                setTaskId(null);
+                setTaskId(null); setTaskToken(null);
                 setProgress({phase:'uploading', percent:0});
                 setSelectedChoice(null);
                 const request = new AbortController();
@@ -444,6 +446,7 @@
                     const data = await res.json();
                     if (!res.ok || !data.success || !data.taskId) throw new Error('Upload not confirmed');
                     if (requestRef.current !== request) return;
+                    setTaskToken(data.taskToken);
                     setTaskId(data.taskId);
                     setProgress({phase:'pending', percent:25});
                 } catch (err) {
@@ -461,12 +464,16 @@
                 try {
                     const response = await fetch(API_BASE_URL + "/api/choice/" + taskId, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'X-Task-Token': taskToken },
                         body: JSON.stringify({ choice: selectedChoice })
                     });
-                    await response.json();
+                    const data = await response.json();
+                    if (!response.ok || !data.success) throw new Error(data.error || '送出失敗');
                 } catch(e) {
                     console.error("回傳選擇失敗", e);
+                    alert(lang === "zh" ? "尚未送出成功，請重試：" + e.message : "Submission failed. Please try again.");
+                    setIsSubmitting(false);
+                    return;
                 }
 
                 setIsSubmitting(false);
@@ -483,14 +490,14 @@
                 setCountdown(0);
                 if (stream) stream.getTracks().forEach(t => t.stop());
                 setStream(null);
-                setTaskId(null);
+                setTaskId(null); setTaskToken(null);
                 setCameraError(false);
                 setStep('home');
             };
 
             useEffect(() => {
                 if (step === 'completed' && taskId && qrCanvasRef.current) {
-                    const downloadUrl = `https://aicameraliveprint-back.onrender.com/download.html?taskId=${encodeURIComponent(taskId)}&lang=${encodeURIComponent(lang)}`;
+                    const downloadUrl = `${API_BASE_URL}/download.html?taskId=${encodeURIComponent(taskId)}&token=${encodeURIComponent(taskToken)}&lang=${encodeURIComponent(lang)}`;
 
                     new QRious({
                         element: qrCanvasRef.current,
@@ -501,7 +508,7 @@
                         level: 'H'
                     });
                 }
-            }, [step, taskId, lang]);
+            }, [step, taskId, taskToken, lang]);
 
             useEffect(() => {
                 let returnTimer;
@@ -518,7 +525,7 @@
             useEffect(() => {
                 if (step !== 'loading' || !taskId) return;
                 const monitor = TourismProgress.monitor({
-                    apiBase:API_BASE_URL, taskId,
+                    apiBase:API_BASE_URL, taskId, taskToken,
                     onProgress:setProgress,
                     onFailure:() => {},
                     onReady:data => {
@@ -528,7 +535,7 @@
                 });
                 monitorRef.current = monitor;
                 return () => monitor.stop();
-            }, [step, taskId]);
+            }, [step, taskId, taskToken]);
 
             return (
                 <div className="flex flex-col items-center justify-between min-h-[100dvh] w-full pt-3 pb-8 px-6">
@@ -755,6 +762,7 @@
     </script>
 </body>
 </html>
+
 
 
 
